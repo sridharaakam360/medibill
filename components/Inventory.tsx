@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Package, Filter, AlertTriangle, Search, Plus, Trash2, Edit2, X, Save, IndianRupee, Activity, Calendar, Truck, Layers, MapPin, Box, Phone, Mail, User, History, ArrowDown, ArrowUp, RefreshCcw, UploadCloud, FileText, ExternalLink, Copy } from 'lucide-react';
+import { Package, Filter, AlertTriangle, Search, Plus, Trash2, Edit2, X, Save, IndianRupee, Activity, Calendar, Truck, Layers, MapPin, Box, Phone, Mail, User, History, ArrowDown, ArrowUp, RefreshCcw, UploadCloud, FileText, ExternalLink, Copy, CheckCircle, AlertCircle } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { MOCK_MEDICINES, MOCK_SUPPLIERS, MEDICINE_FORMS, MEDICINE_SCHEDULES, getMockStockHistory } from '../constants';
 import { Medicine, Supplier, StockHistoryItem } from '../types';
@@ -16,6 +16,9 @@ export const Inventory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'low' | 'out'>('all');
   
+  // Notification State
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+
   // Modals
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
@@ -77,9 +80,10 @@ export const Inventory: React.FC = () => {
       return Array.from(names).sort();
   }, [medicines]);
 
-  // Filter Logic
+  // Filter & Sort Logic
   const filteredMedicines = useMemo(() => {
-    return medicines.filter(item => {
+    // 1. Filter
+    const filtered = medicines.filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             item.batchNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             item.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,6 +96,20 @@ export const Inventory: React.FC = () => {
           : item.stock === 0;
 
       return matchesSearch && matchesFilter;
+    });
+
+    // 2. Sort: Name (A-Z) -> Expiry (Earliest First / FEFO)
+    return filtered.sort((a, b) => {
+        // Primary Sort: Name
+        const nameCompare = a.name.localeCompare(b.name);
+        if (nameCompare !== 0) return nameCompare;
+        
+        // Secondary Sort: Expiry Date (Ascending)
+        // Handle potential empty dates safely
+        const dateA = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
+        const dateB = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
+        
+        return dateA - dateB;
     });
   }, [medicines, searchTerm, filterStatus]);
 
@@ -106,6 +124,11 @@ export const Inventory: React.FC = () => {
   }, [medicines]);
 
   // --- Handlers: Inventory ---
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+      setNotification({ message, type });
+      setTimeout(() => setNotification(null), 3000);
+  };
 
   const handleAddNewMedicine = () => {
     setIsEditing(false);
@@ -156,11 +179,16 @@ export const Inventory: React.FC = () => {
   const handleDeleteMedicine = (id: string) => {
     if (confirm('Are you sure you want to delete this medicine?')) {
       setMedicines(prev => prev.filter(m => m.id !== id));
+      showToast('Medicine deleted successfully', 'success');
     }
   };
 
   const handleSaveMedicine = () => {
-    if (!currentMedicine.name || !currentMedicine.batchNo) return;
+    // Validation
+    if (!currentMedicine.name || !currentMedicine.batchNo) {
+        showToast('Please fill in Medicine Name and Batch Number', 'error');
+        return;
+    }
     
     // In a real app, we would upload invoiceFile here
     if (invoiceFile) {
@@ -179,10 +207,17 @@ export const Inventory: React.FC = () => {
 
     if (isEditing && currentMedicine.id) {
       setMedicines(prev => prev.map(m => m.id === currentMedicine.id ? currentMedicine as Medicine : m));
+      showToast('Medicine details updated successfully', 'success');
     } else {
       const newId = (Math.max(...medicines.map(m => parseInt(m.id)), 0) + 1).toString();
       setMedicines(prev => [...prev, { ...currentMedicine, id: newId } as Medicine]);
+      showToast('New stock added successfully', 'success');
     }
+
+    // Reset filters to ensure the user sees the new item they just added
+    setSearchTerm('');
+    setFilterStatus('all');
+
     setShowInventoryModal(false);
   };
 
@@ -205,11 +240,15 @@ export const Inventory: React.FC = () => {
   };
 
   const handleSaveSupplier = () => {
-      if (!currentSupplier.name) return;
+      if (!currentSupplier.name) {
+          showToast('Supplier Name is required', 'error');
+          return;
+      }
       const newId = (suppliers.length + 1).toString();
       const newSup = { ...currentSupplier, id: newId } as Supplier;
       setSuppliers([...suppliers, newSup]);
       setShowSupplierModal(false);
+      showToast('Supplier registered successfully', 'success');
       
       // If adding from Inventory Modal context, auto-select it
       if (showInventoryModal) {
@@ -246,17 +285,38 @@ export const Inventory: React.FC = () => {
       if (!newCategoryName.trim()) return;
       if (!categories.includes(newCategoryName)) {
           setCategories([...categories, newCategoryName]);
+          showToast('Category added successfully', 'success');
       }
       setShowCategoryModal(false);
   };
 
   return (
     <div className="space-y-6 animate-fade-in relative">
+
+      {/* --- Notification Toast --- */}
+      {notification && (
+          <div className="fixed top-24 right-6 z-[100] animate-slide-in-right">
+              <GlassCard className={`p-4 flex items-center gap-3 border-l-4 ${notification.type === 'success' ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                  {notification.type === 'success' ? (
+                      <CheckCircle className="text-green-500" size={24} />
+                  ) : (
+                      <AlertCircle className="text-red-500" size={24} />
+                  )}
+                  <div>
+                      <p className={`font-bold ${notification.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                          {notification.type === 'success' ? 'Success' : 'Error'}
+                      </p>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">{notification.message}</p>
+                  </div>
+              </GlassCard>
+          </div>
+      )}
       
       {/* --- MODAL: Product History --- */}
       {viewingHistory && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-            <GlassCard className="w-full max-w-2xl bg-[#0F172A] border border-slate-700 shadow-2xl flex flex-col max-h-[90vh]">
+            <GlassCard className="w-full max-w-2xl bg-[#0F172A] border border-slate-700 shadow-2xl h-[80vh] flex flex-col">
+              <div className="flex flex-col h-full">
                <div className="flex-shrink-0 p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                   <div>
                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -319,6 +379,7 @@ export const Inventory: React.FC = () => {
                        </tbody>
                    </table>
                </div>
+              </div>
             </GlassCard>
          </div>
       )}
@@ -326,7 +387,8 @@ export const Inventory: React.FC = () => {
       {/* --- MODAL: Supplier History --- */}
       {viewingSupplierHistory && (
          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-            <GlassCard className="w-full max-w-3xl bg-[#0F172A] border border-slate-700 shadow-2xl flex flex-col max-h-[90vh]">
+            <GlassCard className="w-full max-w-3xl bg-[#0F172A] border border-slate-700 shadow-2xl h-[80vh] flex flex-col">
+              <div className="flex flex-col h-full">
                <div className="flex-shrink-0 p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                   <div>
                     <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -381,6 +443,7 @@ export const Inventory: React.FC = () => {
                <div className="flex-shrink-0 p-4 border-t border-white/10 bg-white/5 flex justify-end">
                    <button onClick={() => setViewingSupplierHistory(null)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Close</button>
                </div>
+              </div>
             </GlassCard>
          </div>
       )}
@@ -388,7 +451,8 @@ export const Inventory: React.FC = () => {
       {/* --- MODAL: Inventory Add/Edit --- */}
       {showInventoryModal && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <GlassCard className="w-full max-w-2xl bg-[#0F172A] border border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <GlassCard className="w-full max-w-2xl bg-[#0F172A] border border-slate-700 shadow-2xl h-[80vh] flex flex-col">
+           <div className="flex flex-col h-full">
             <div className="flex-shrink-0 p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
               <h3 className="text-xl font-bold text-white">{isEditing ? 'Edit Medicine' : 'Add New Medicine'}</h3>
               <button onClick={() => setShowInventoryModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
@@ -568,6 +632,7 @@ export const Inventory: React.FC = () => {
                  <Save size={18} /> Save Medicine
                </button>
             </div>
+           </div>
           </GlassCard>
         </div>
       )}
@@ -575,7 +640,8 @@ export const Inventory: React.FC = () => {
       {/* --- MODAL: Add Supplier --- */}
       {showSupplierModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-           <GlassCard className="w-full max-w-lg bg-[#0F172A] border border-slate-700 shadow-2xl flex flex-col">
+           <GlassCard className="w-full max-w-lg bg-[#0F172A] border border-slate-700 shadow-2xl h-[80vh] flex flex-col">
+            <div className="flex flex-col h-full">
               <div className="flex-shrink-0 p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
                  <h3 className="text-xl font-bold text-white">Register New Supplier</h3>
                  <button onClick={() => setShowSupplierModal(false)} className="text-slate-400 hover:text-white"><X size={20}/></button>
@@ -608,6 +674,7 @@ export const Inventory: React.FC = () => {
                  <button onClick={() => setShowSupplierModal(false)} className="px-4 py-2 text-slate-300 hover:bg-white/5 rounded-lg">Cancel</button>
                  <button onClick={handleSaveSupplier} className="px-6 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg">Register Supplier</button>
               </div>
+            </div>
            </GlassCard>
         </div>
       )}

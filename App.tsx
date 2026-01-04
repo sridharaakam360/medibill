@@ -27,7 +27,7 @@ const AppContent: React.FC = () => {
   const renderContent = () => {
     switch (currentView) {
       case ViewState.DASHBOARD:
-        return <Dashboard />;
+        return <Dashboard onNavigate={setCurrentView} />;
       case ViewState.BILLING:
         return <Billing />;
       case ViewState.INVENTORY:
@@ -37,7 +37,7 @@ const AppContent: React.FC = () => {
       case ViewState.REPORTS:
         return <PlaceholderView title="Reports & Analytics" />;
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigate={setCurrentView} />;
     }
   };
 

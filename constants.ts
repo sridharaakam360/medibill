@@ -24,6 +24,15 @@ export const MOCK_MEDICINES: Medicine[] = [
   { id: '8', name: 'Pantoprazole 40mg', batchNo: 'P-998', expiryDate: '2024-09', stock: 1200, price: 95.00, schedule: 'Schedule H', form: 'Tablet', supplier: 'GastroCure', minStockLevel: 400, location: 'Rack B-03' },
   { id: '9', name: 'Benadryl Cough Syrup', batchNo: 'S-452', expiryDate: '2025-02', stock: 150, price: 110.00, schedule: 'Schedule G', form: 'Syrup', supplier: 'Global Meds', minStockLevel: 50, location: 'Shelf S-01' },
   { id: '10', name: 'Volini Spray', batchNo: 'SP-112', expiryDate: '2025-08', stock: 85, price: 210.00, schedule: 'OTC', form: 'Spray', supplier: 'HealthCorp India', minStockLevel: 20, location: 'Shelf S-02' },
+  
+  // Same Medicine (Paracetamol), Same Supplier, Different Batch (Expiring Sooner)
+  { id: '11', name: 'Paracetamol 500mg', batchNo: 'B-205', expiryDate: '2024-06', stock: 500, price: 25.00, schedule: 'OTC', form: 'Tablet', supplier: 'HealthCorp India', minStockLevel: 500, location: 'Rack A-01' },
+  
+  // Same Medicine (Paracetamol), Different Supplier, Different Batch
+  { id: '12', name: 'Paracetamol 500mg', batchNo: 'P-900', expiryDate: '2025-05', stock: 1000, price: 24.50, schedule: 'OTC', form: 'Tablet', supplier: 'MediLife Pharma', minStockLevel: 500, location: 'Rack A-06' },
+
+  // Same Medicine (Amoxicillin), Different Supplier, Different Batch (Expiring Sooner)
+  { id: '13', name: 'Amoxicillin 250mg', batchNo: 'A-999', expiryDate: '2024-05', stock: 100, price: 82.00, schedule: 'Schedule H', form: 'Capsule', supplier: 'Global Meds', minStockLevel: 100, location: 'Rack B-05' },
 ];
 
 export const MOCK_CUSTOMERS: Customer[] = [
