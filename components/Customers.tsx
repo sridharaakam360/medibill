@@ -1,8 +1,29 @@
 import React, { useState, useMemo } from 'react';
-import { UserPlus, Search, Phone, Calendar, IndianRupee, MoreVertical, Mail, MapPin, ArrowLeft, Clock, FileText, CheckCircle, AlertCircle, X, Save, Plus, Trash2, Star } from 'lucide-react';
+import { UserPlus, Search, Phone, Calendar, IndianRupee, MoreVertical, Mail, MapPin, ArrowLeft, Clock, FileText, CheckCircle, AlertCircle, X, Save, Plus, Trash2, Star, TrendingUp } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { MOCK_CUSTOMERS, getMockPurchaseHistory, getMockInvoiceDetails } from '../constants';
-import { Customer, PurchaseHistoryItem, InvoiceDetails } from '../types';
+import { Customer, PurchaseHistoryItem, InvoiceDetails, StatCardProps } from '../types';
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, change, isPositive, icon }) => (
+  <GlassCard hoverEffect className="p-6 relative overflow-hidden group h-full">
+    <div className="absolute right-0 top-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-500">
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 64 })}
+    </div>
+    <div className="relative z-10">
+        <div className="flex justify-between items-start mb-4">
+        <div className="p-3 rounded-xl bg-blue-500/10 dark:bg-white/10 text-primary backdrop-blur-md">
+            {icon}
+        </div>
+        <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 ${isPositive ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'}`}>
+            {isPositive ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />}
+            {change}
+        </span>
+        </div>
+        <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">{title}</h3>
+        <p className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">{value}</p>
+    </div>
+  </GlassCard>
+);
 
 export const Customers: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -633,24 +654,20 @@ export const Customers: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Stats */}
-        <GlassCard className="p-6 flex items-center justify-between">
-            <div>
-                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">Total Customers</p>
-                <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">{customers.length}</p>
-            </div>
-            <div className="p-3 bg-blue-500/10 rounded-full text-blue-500">
-                <UserPlus size={24} />
-            </div>
-        </GlassCard>
-        <GlassCard className="p-6 flex items-center justify-between">
-            <div>
-                <p className="text-slate-500 dark:text-slate-400 text-xs font-medium uppercase tracking-wider">Active This Month</p>
-                <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1">142</p>
-            </div>
-            <div className="p-3 bg-green-500/10 rounded-full text-green-500">
-                <Calendar size={24} />
-            </div>
-        </GlassCard>
+        <StatCard 
+            title="Total Customers" 
+            value={customers.length.toString()} 
+            change="+8.2%" 
+            isPositive={true} 
+            icon={<UserPlus size={24} />} 
+        />
+        <StatCard 
+            title="Active This Month" 
+            value="142" 
+            change="+12%" 
+            isPositive={true} 
+            icon={<Calendar size={24} />} 
+        />
         <GlassCard className="p-6 flex items-center justify-between lg:col-span-2">
            <div className="flex items-center bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-3 w-full focus-within:border-primary transition-colors">
               <Search className="text-slate-400 mr-3" size={20} />

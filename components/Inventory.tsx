@@ -1,10 +1,31 @@
 import React, { useState, useMemo } from 'react';
-import { Package, Filter, AlertTriangle, Search, Plus, Trash2, Edit2, X, Save, IndianRupee, Activity, Calendar, Truck, Layers, MapPin, Box, Phone, Mail, User, History, ArrowDown, ArrowUp, RefreshCcw, UploadCloud, FileText, ExternalLink, Copy, CheckCircle, AlertCircle } from 'lucide-react';
+import { Package, Filter, AlertTriangle, Search, Plus, Trash2, Edit2, X, Save, IndianRupee, Activity, Calendar, Truck, Layers, MapPin, Box, Phone, Mail, User, History, ArrowDown, ArrowUp, RefreshCcw, UploadCloud, FileText, ExternalLink, Copy, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { MOCK_MEDICINES, MOCK_SUPPLIERS, MEDICINE_FORMS, MEDICINE_SCHEDULES, getMockStockHistory } from '../constants';
-import { Medicine, Supplier, StockHistoryItem } from '../types';
+import { Medicine, Supplier, StockHistoryItem, StatCardProps } from '../types';
 
 type Tab = 'inventory' | 'suppliers' | 'categories';
+
+const StatCard: React.FC<StatCardProps> = ({ title, value, change, isPositive, icon }) => (
+  <GlassCard hoverEffect className="p-6 relative overflow-hidden group h-full">
+    <div className="absolute right-0 top-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-500">
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 64 })}
+    </div>
+    <div className="relative z-10">
+        <div className="flex justify-between items-start mb-4">
+        <div className="p-3 rounded-xl bg-blue-500/10 dark:bg-white/10 text-primary backdrop-blur-md">
+            {icon}
+        </div>
+        <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 ${isPositive ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20'}`}>
+            {isPositive ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />}
+            {change}
+        </span>
+        </div>
+        <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">{title}</h3>
+        <p className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">{value}</p>
+    </div>
+  </GlassCard>
+);
 
 export const Inventory: React.FC = () => {
   const [medicines, setMedicines] = useState<Medicine[]>(MOCK_MEDICINES);
@@ -746,35 +767,35 @@ export const Inventory: React.FC = () => {
       {activeTab === 'inventory' && (
         <>
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <GlassCard className="p-4 flex items-center gap-4">
-                    <div className="p-3 bg-blue-500/10 rounded-full text-blue-500"><Package size={24} /></div>
-                    <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase">Total Items</p>
-                        <p className="text-xl font-bold text-slate-800 dark:text-white">{stats.totalItems}</p>
-                    </div>
-                </GlassCard>
-                <GlassCard className="p-4 flex items-center gap-4">
-                    <div className="p-3 bg-green-500/10 rounded-full text-green-500"><IndianRupee size={24} /></div>
-                    <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase">Total Value</p>
-                        <p className="text-xl font-bold text-slate-800 dark:text-white">₹{stats.totalValue.toLocaleString()}</p>
-                    </div>
-                </GlassCard>
-                <GlassCard className="p-4 flex items-center gap-4">
-                    <div className="p-3 bg-red-500/10 rounded-full text-red-500"><AlertTriangle size={24} /></div>
-                    <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase">Low Stock</p>
-                        <p className="text-xl font-bold text-slate-800 dark:text-white">{stats.lowStock}</p>
-                    </div>
-                </GlassCard>
-                <GlassCard className="p-4 flex items-center gap-4">
-                    <div className="p-3 bg-orange-500/10 rounded-full text-orange-500"><Activity size={24} /></div>
-                    <div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase">Out of Stock</p>
-                        <p className="text-xl font-bold text-slate-800 dark:text-white">{stats.outOfStock}</p>
-                    </div>
-                </GlassCard>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard 
+                    title="Total Items" 
+                    value={stats.totalItems.toString()} 
+                    change="+5.2%" 
+                    isPositive={true} 
+                    icon={<Package size={24} />} 
+                />
+                <StatCard 
+                    title="Total Value" 
+                    value={`₹${stats.totalValue.toLocaleString()}`} 
+                    change="+12%" 
+                    isPositive={true} 
+                    icon={<IndianRupee size={24} />} 
+                />
+                <StatCard 
+                    title="Low Stock" 
+                    value={stats.lowStock.toString()} 
+                    change="+2 items" 
+                    isPositive={false} 
+                    icon={<AlertTriangle size={24} />} 
+                />
+                <StatCard 
+                    title="Out of Stock" 
+                    value={stats.outOfStock.toString()} 
+                    change="0%" 
+                    isPositive={true} 
+                    icon={<Activity size={24} />} 
+                />
             </div>
 
             {/* Filter Toolbar */}

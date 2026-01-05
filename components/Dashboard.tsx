@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, AlertCircle, Users, Activity, IndianRupee, Package, Plus, ArrowRight, Clock, AlertTriangle, FileText, ChevronRight } from 'lucide-react';
+import { TrendingUp, AlertCircle, Users, Activity, IndianRupee, Package, Plus, ArrowRight, Clock, AlertTriangle, FileText, ChevronRight, Calendar } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { StatCardProps, ViewState } from '../types';
 import { RECENT_SALES, CHART_DATA, MOCK_MEDICINES } from '../constants';
@@ -39,14 +39,30 @@ const MOCK_TOP_SELLING = [
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
-  // Low Stock Logic - Pulling from constants
+  const [activeAlertTab, setActiveAlertTab] = useState<'stock' | 'expiry'>('stock');
+
+  // Low Stock Logic
   const lowStockItems = useMemo(() => {
     return MOCK_MEDICINES
         .filter(m => m.stock <= m.minStockLevel)
         .sort((a,b) => a.stock - b.stock); // Critical items first
   }, []);
 
-  // Pending Bills Logic - Pulling from constants
+  // Expiry Logic (Items expiring within 6 months)
+  const expiringItems = useMemo(() => {
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setMonth(today.getMonth() + 6);
+
+    return MOCK_MEDICINES
+        .filter(m => {
+            const exp = new Date(m.expiryDate);
+            return exp <= futureDate;
+        })
+        .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+  }, []);
+
+  // Pending Bills Logic
   const pendingBills = useMemo(() => {
     return RECENT_SALES.filter(s => s.status === 'Pending');
   }, []);
@@ -243,37 +259,103 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     </div>
                 </GlassCard>
 
-                {/* Low Stock Alerts */}
-                <GlassCard className="p-0 overflow-hidden h-auto">
-                    <div className="p-5 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-red-500/5">
+                {/* Inventory Alerts (Dual Value: Low Stock & Expiry) */}
+                <GlassCard className="p-0 overflow-hidden h-auto flex flex-col">
+                    <div className="p-5 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-white/50 dark:bg-white/5">
                          <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                             <AlertTriangle size={20} className="text-red-500" /> Low Stock Alerts
+                             <AlertTriangle size={20} className="text-red-500" /> Inventory Alerts
                          </h2>
-                         <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{lowStockItems.length}</span>
                     </div>
-                    <div className="p-2">
-                        {lowStockItems.length === 0 ? (
-                            <div className="p-8 text-center text-slate-500 text-sm">All stock levels are healthy!</div>
-                        ) : (
-                            lowStockItems.map(item => (
-                                <div key={item.id} onClick={() => onNavigate(ViewState.INVENTORY)} className="p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg flex items-center justify-between group transition-colors cursor-pointer">
-                                    <div>
-                                        <p className="text-sm font-semibold text-slate-800 dark:text-white">{item.name}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Batch: {item.batchNo}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`text-sm font-bold ${item.stock === 0 ? 'text-red-500' : 'text-orange-500'}`}>
-                                            {item.stock} Left
-                                        </p>
-                                        <span className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity">Restock</span>
-                                    </div>
+                    
+                    {/* Toggle/Stats Section */}
+                    <div className="grid grid-cols-2 gap-3 p-4 pb-2">
+                        <div 
+                            onClick={() => setActiveAlertTab('stock')}
+                            className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                                activeAlertTab === 'stock' 
+                                ? 'bg-red-500/10 border-red-500/20' 
+                                : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-white/5'
+                            }`}
+                        >
+                            <div className="flex flex-col">
+                                <span className={`text-xs font-bold uppercase tracking-wider mb-1 ${activeAlertTab === 'stock' ? 'text-red-600 dark:text-red-400' : 'text-slate-400'}`}>Low Stock</span>
+                                <div className="flex items-center gap-2">
+                                    <AlertCircle size={20} className={activeAlertTab === 'stock' ? "text-red-500" : "text-slate-300"} />
+                                    <span className={`text-2xl font-bold ${activeAlertTab === 'stock' ? "text-slate-800 dark:text-white" : "text-slate-400"}`}>
+                                        {lowStockItems.length}
+                                    </span>
                                 </div>
-                            ))
+                            </div>
+                        </div>
+
+                        <div 
+                            onClick={() => setActiveAlertTab('expiry')}
+                            className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                                activeAlertTab === 'expiry' 
+                                ? 'bg-orange-500/10 border-orange-500/20' 
+                                : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-white/5'
+                            }`}
+                        >
+                            <div className="flex flex-col">
+                                <span className={`text-xs font-bold uppercase tracking-wider mb-1 ${activeAlertTab === 'expiry' ? 'text-orange-600 dark:text-orange-400' : 'text-slate-400'}`}>Expiring</span>
+                                <div className="flex items-center gap-2">
+                                    <Calendar size={20} className={activeAlertTab === 'expiry' ? "text-orange-500" : "text-slate-300"} />
+                                    <span className={`text-2xl font-bold ${activeAlertTab === 'expiry' ? "text-slate-800 dark:text-white" : "text-slate-400"}`}>
+                                        {expiringItems.length}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* List Content */}
+                    <div className="p-2">
+                        {activeAlertTab === 'stock' ? (
+                             // Low Stock List
+                             lowStockItems.length === 0 ? (
+                                <div className="p-8 text-center text-slate-400 text-sm">All stock levels healthy</div>
+                             ) : (
+                                lowStockItems.map(item => (
+                                    <div key={item.id} onClick={() => onNavigate(ViewState.INVENTORY)} className="p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg flex items-center justify-between group transition-colors cursor-pointer">
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-white">{item.name}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">Batch: {item.batchNo}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`text-sm font-bold ${item.stock === 0 ? 'text-red-500' : 'text-red-400'}`}>
+                                                {item.stock} Left
+                                            </p>
+                                            <span className="text-[10px] text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Restock</span>
+                                        </div>
+                                    </div>
+                                ))
+                             )
+                        ) : (
+                             // Expiry List
+                             expiringItems.length === 0 ? (
+                                <div className="p-8 text-center text-slate-400 text-sm">No upcoming expiries</div>
+                             ) : (
+                                expiringItems.map(item => (
+                                    <div key={item.id} onClick={() => onNavigate(ViewState.INVENTORY)} className="p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg flex items-center justify-between group transition-colors cursor-pointer">
+                                        <div>
+                                            <p className="text-sm font-semibold text-slate-800 dark:text-white">{item.name}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">Batch: {item.batchNo}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-orange-500">
+                                                {item.expiryDate}
+                                            </p>
+                                            <span className="text-[10px] text-slate-400">Expiry</span>
+                                        </div>
+                                    </div>
+                                ))
+                             )
                         )}
                     </div>
+
                     <div className="p-3 border-t border-slate-200 dark:border-white/10 text-center mt-auto">
                         <button onClick={() => onNavigate(ViewState.INVENTORY)} className="text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors">
-                            View All Inventory
+                            {activeAlertTab === 'stock' ? 'Manage Inventory' : 'View All Expiries'}
                         </button>
                     </div>
                 </GlassCard>
